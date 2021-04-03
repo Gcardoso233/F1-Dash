@@ -7,7 +7,4 @@ dash-html-components
 dash-core-components
 pandas
 numpy
-os
-pathlib 
-urllib
-re
+

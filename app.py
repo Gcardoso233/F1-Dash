@@ -8,16 +8,16 @@ import plotly.graph_objs as go
 import plotly.express as px
 import urllib.request, json 
 import re
-# https://htmlcheatsheet.com/css/
 
 ######################################################Data##############################################################
 
 f1_data = pd.read_csv('F1_data.csv')
-
+f1_data = f1_data.sort_values(by='forename')
 laps = pd.read_csv('lap_times.csv')
 laps = pd.merge(laps,f1_data[['circuit','full_name','raceId','driverId','year','fastestLapSpeed','fastestLapTime']],on=['raceId','driverId'])
 
 ######################################################Interactive Components############################################
+
 #years
 year_slider = dcc.Slider(
         id='year_slider',
@@ -39,10 +39,11 @@ circuit_dropdown = dcc.Dropdown(
     id='circuit_dropdown',
     options=[{'label': k, 'value': k} for k in all_circuit_options.keys()],
     value = 'Austrian Grand Prix',
+    clearable=False,
     style={'font-family': 'Helvetica'}
 )
 
-
+#drivers
 driver_options={}
 for year in list(f1_data['year'].unique()):
     driver_options[year] = list(f1_data[f1_data['year']==year]['full_name'].unique())
@@ -51,12 +52,12 @@ driver_dropdown = dcc.Dropdown(
     id='driver_dropdown',
     options=[{'label': k, 'value': k} for k in driver_options.keys()],
     value='Lewis Hamilton',
+    clearable=False,
     style={'font-family': 'Helvetica'}
 )
 
 
-#######colors
-
+#tab colors
 tab_style = {
     'borderTop': '1px solid #242e3f',
     'borderRight': '1px solid #1c212a',
@@ -93,51 +94,56 @@ server = app.server
 
 app.layout = html.Div([
 
+    #main title
     html.H1('🏁 Formula 1 History Dashboard 🏁', className='box box_title',style={'font-size': '40px',}),
 
+    #race charts
     html.Div([
-        #video 1
+        
+        #drivers
         html.Div([
             html.Video(src='/static/pilot_winners.mp4',controls = False,loop=True,width="100%", height="300",autoPlay=True,muted=True),
         ], style={'width': '50%'}, className='box box_graph'),
-
+        
+        #teams
         html.Div([
             html.Video(src='/static/team_winners.mp4',controls = False,loop=True,width="100%", height="300",autoPlay=True,muted=True),
         ], style={'width': '50%'}, className='box box_graph'),
 
     ], className='row'),
     
-
+    #subtitle
     html.H2('Explore Statistics by Year!', className='box box_graph'),
 
+    #year slider
     html.Div([
             year_slider,
             html.H2([],id='selected_year'),
                 ], className='box box_graph'),
 
-
+    #tabs
     dcc.Tabs([
+        #Tab 1 Year info
         dcc.Tab(label='Year Info', children=[
-            #div row 1 (inputs + mapa)
+            #div row 1 (map)
             html.Div([
-                #coluna 2 (mapa)
+                #column (map)
                 html.Div([
                     dcc.Graph(id='year_map')
                 ], className='box box_graph',style={'width':'100%'})
                     
             ], className='row'),
 
-            #div row 2 (posições equipa + driver)
+            #div row 2 (standings drivers + teams)
             html.Div([
                 dcc.Graph(id='driver_standings', style={'width': '50%'}, className='box box_graph'),
-
                 dcc.Graph(id='teams_standings', style={'width': '50%'}, className='box box_graph')
             ], className='row'),
         ],selected_style = tab_selected_style, style=tab_style),
 
-        #Separador 2
+        #Tab 2 circuits
         dcc.Tab(label='Grand Prix', children=[
-            #input circuito
+            #Circuit input
             html.Div([
                 html.Div([],style={'width':'33%'}),
                 html.Div([
@@ -146,6 +152,8 @@ app.layout = html.Div([
                 ], className='',style={'width':'33%'}),
                 html.Div([],style={'width':'33%'}),
             ],className='row'),
+
+            # Selected year circuit info
             html.Div([
                 html.Div([
                     html.H1([],id='circuit_fastlap_text'),
@@ -161,12 +169,14 @@ app.layout = html.Div([
                     html.H3('Acidents 💥'),
                 ], style={'width': '33%'}, className='box'),
             ],className="row"),
-
+            
             html.Div([
+                #circuit map
                 html.Div([
                     html.Div([],id='circuit_map')
                 ], style={'width': '60%','object-fit': 'contain','display':'flex','justify-content':'center','align-items':'center'}, className='box box_graph'),
-
+                
+                # circuit historic info
                 html.Div([
                     html.H1('Historic Fastest Lap Record'),
                     html.Div([
@@ -194,38 +204,27 @@ app.layout = html.Div([
 
         ],selected_style = tab_selected_style, style=tab_style),
 
-        #Separador 3 driver
-        dcc.Tab(label='Driver', children=[
+        #Tab 3 drivers
+        dcc.Tab(label='Drivers', children=[
+            #driver input
             html.Div([
                 html.Div([],style={'width':'33%'}),
                 html.Div([
-                    html.H3('Select your favorite driver:'),
+                    html.H3('Drivers in selected year:'),
                     driver_dropdown,
                 ], className='',style={'width':'33%'}),
                 html.Div([],style={'width':'33%'}),
             ],className='row'),
-            #caixa
+
             html.Div([
                 html.Div([], style={'width': '0%'}),
+                html.Div([ 
 
-                html.Div([
-                        #selecionar 
-                        html.Div([
-                            html.Div([],style={'width': '33%'}),
-                            html.Div([
-                                    
-                                   
-                            ], className='',style={'width': '34%'}),
-                            html.Div([],style={'width': '33%'}),
-                        ],className='row'),
-                        
-                        #foto
+                        #photo and summary
                         html.Div([
                             html.Div([],id='driver_photo', style={'width': '34%','display':'flex','justify-content':'center'}),
                             html.Div([],id='driver_summary', className='box box_graph', style={'width': '66%', 'color':'white', 'text-align': 'justify', 'text-justify': 'inter-word','font-family': 'Helvetica','font-size':'20px'}),
-
                         ], className='row'),
-
 
                         #quick info
                         html.Div([
@@ -245,16 +244,17 @@ app.layout = html.Div([
                             ], style={'width': '33%'}, className='box'),
                         ], className='row'),
                 ], style={'width': '100%'}, className='box box_graph'),
-
-                html.Div([], style={'width': '0%'}),
-                
+                html.Div([], style={'width': '0%'}),               
             ], className='row'),
             
+            #charts
             html.Div([
+                #driver wins
                 html.Div([
                     dcc.Graph(id='driver_points')
                 ],style={'width': '50%'}, className='box box_graph'),
                 
+                #driver status
                 html.Div([
                     dcc.Graph(id='driver_status')
                 ],style={'width': '50%'}, className='box box_graph'),
@@ -263,12 +263,15 @@ app.layout = html.Div([
     ]),
 ])
 ######################################################Callbacks#########################################################
+
+#year slider
 @app.callback(
     Output('selected_year', 'children'),
     Input('year_slider', 'value'))
 def ret_year(year):
     return html.H4(year)
 
+#circuit dropdown
 @app.callback(
     Output('circuit_dropdown', 'options'),
     Input('year_slider', 'value'))
@@ -281,7 +284,7 @@ def set_cities_options(selected_year):
 def set_cities_value(available_options):
     return available_options[0]['value']
 
-
+#driver dropdown
 @app.callback(
     Output('driver_dropdown', 'options'),
     Input('year_slider', 'value'))
@@ -292,8 +295,9 @@ def set_cities_options(selected_year):
     Output('driver_dropdown', 'value'),
     Input('driver_dropdown', 'options'))
 def set_cities_value(available_options):
-    return available_options[5]['value']
+    return available_options[13]['value']
 
+#year map + standings
 @app.callback(
     [
         Output("year_map", "figure"),
@@ -305,7 +309,7 @@ def set_cities_value(available_options):
     ]
 )
 def plots(year):
-    ############################################map##########################################################
+    #map
     plot_data = f1_data[f1_data['year']==year].drop_duplicates(subset=['country'])
     prix_plot_data = f1_data[f1_data['year']==(year)]
     prix = len(prix_plot_data['circuit'].drop_duplicates())
@@ -327,9 +331,6 @@ def plots(year):
                                       oceancolor='#242e3f',
                                       showframe=False
                                      ),
-                            #autosize=False,
-                            #width=500,
-                            #height=500,
                             margin=dict(
                                         l=0,
                                         r=0,
@@ -341,12 +342,12 @@ def plots(year):
                             paper_bgcolor = '#242e3f',
                             font= {'color': 'white','size':15},         
                             title=dict(text=f'{year} Grand Prix Locations ({prix} circuits)',
-                                    x=.5 # Title relative position according to the xaxis, range (0,1)
+                                    x=.5 
                                     )
                             )
     year_map_plot = go.Figure(data=data_choropleth, layout=layout_choropleth)
-    #############################################Driver######################################################
 
+    #Driver standings
     plot_data = f1_data[f1_data['year']==year]
     plot_data = plot_data[plot_data['round']==plot_data['round'].max()]
 
@@ -381,8 +382,8 @@ def plots(year):
                             font= {'color': 'white','size':15},
                              )
     driver_stands_plot = fig_driver
-    ############################################Teams######################################################
 
+    #Team standings
     plot_data = f1_data[f1_data['year']==(year)]
     plot_data = plot_data.groupby('constructor')['points'].sum()
     plot_data = plot_data.sort_values()
@@ -450,6 +451,7 @@ def plots(year):
            driver_stands_plot, \
            teams_stands_plot
 
+#circuit info
 @app.callback(
     [           
         Output("circuit_map", "children"),
@@ -469,6 +471,7 @@ def plots(year):
 )
 
 def circuit_info(year,gp):
+    #circuit map
     if gp == 'Eifel Grand Prix':
         lk= 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/N%C3%BCrburgring_-_Grand-Prix-Strecke.svg/600px-N%C3%BCrburgring_-_Grand-Prix-Strecke.svg.png'
         img_link = html.Img(src=lk, style={'height':'100%', 'width':'100%','object-fit': 'contain' }),
@@ -486,29 +489,27 @@ def circuit_info(year,gp):
         
         img_link = html.Img(src=data['query']['pages'][0]['thumbnail']['source'], style={'height':'100%', 'width':'100%','object-fit': 'contain',})
 
-    ###############
+    #circuit winner
     winner = f1_data[(f1_data['year']==year)&(f1_data['circuit']==gp)]
     winner = winner[winner['position']=='1']
     winner_name = winner['full_name'].values[0]
-    #####
-    fastest = f1_data[(f1_data['year']==year)&(f1_data['circuit']==gp)]
-    fastest = fastest[fastest['fastestLapTime'] == fastest['fastestLapTime'].min()]['fastestLapTime'].values[0]
-    
 
-    #####
+    #circuit fastest lap
+    fastest = f1_data[(f1_data['year']==year)&(f1_data['circuit']==gp)]
+    fastest = fastest[fastest['fastestLapTime'] != '-']
+    fastest = fastest[fastest['fastestLapTime'] == fastest['fastestLapTime'].min()]['fastestLapTime'].values[0]
+
+    #circuit accidents
     accidents = f1_data[(f1_data['year']==year)&(f1_data['circuit']==gp)]
     accidents = accidents[(accidents['status']=='Accident')|(accidents['status']=='Collision')|(accidents['status']=='Fatal accident')|(accidents['status']=='Collision damage')]
     accidents = len(accidents)
 
-    ####
-
+    #circuit historic lap 
     laps_circuit = laps[laps['circuit']==gp]
     laps_circuit['time'] = laps_circuit['time'].replace('\\N','0')
     laps_circuit['time'] = laps_circuit['time'].str.replace(':','').astype(float)
-
     fastest_ever = laps_circuit[laps_circuit['time']==laps_circuit['time'].min()]
 
-    
     driver_record = fastest_ever['full_name'].values[0]
     lap_record = fastest_ever['fastestLapTime'].values[0]
     speed_record = fastest_ever['fastestLapSpeed'].values[0]
@@ -523,7 +524,7 @@ def circuit_info(year,gp):
             speed_record,\
             year_record,  
 
-
+#drivers
 @app.callback(
     [           
         Output("driver_points", "figure"),
@@ -541,6 +542,7 @@ def circuit_info(year,gp):
     ]
 )
 def driver_info(name):
+    #driver wins
     driver = f1_data[(f1_data['full_name']==name)]
     driver['position'] = driver['position'].replace('\\N','0')
     driver['position'] = driver['position'].astype(int)
@@ -558,11 +560,12 @@ def driver_info(name):
 
     fig_points.update_layout(barmode='group', xaxis_tickangle=-45,
                         yaxis_title="Races Won",
-                        title={'text':"Driver wins per year"},
+                        title={'text':f"{name} won {wins.sum()} races in his career"},
                         plot_bgcolor = '#242e3f',
                         paper_bgcolor = '#242e3f',
                         font= {'color': 'white','size':15},)
-#########
+    
+    #driver status
     driver = f1_data[(f1_data['full_name']==name)]
     status = driver.groupby('status')['status'].count()
 
@@ -570,21 +573,29 @@ def driver_info(name):
     values = status.values
 
     fig_status = px.pie(values=values, names=labels,
-                 title='Most common status by the end a race',
+                 title='Most common status by the end of a race',
                 )
     fig_status.update_traces(textposition='inside', textinfo='percent+label',)
     fig_status.update_layout(plot_bgcolor = '#242e3f',paper_bgcolor = '#242e3f',font= {'color': 'white','size':15})
-#########
-    link_name_replace = name.replace(' ', '%20')
-    link = f"https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&prop=pageimages|pageterms&piprop=thumbnail&pithumbsize=500&redirects=1&titles={link_name_replace}"
-    with urllib.request.urlopen(link) as url:
-        data = json.loads(url.read().decode())
-    
-    photo_link = html.Img(src=data['query']['pages'][0]['thumbnail']['source'], style={'max-height':'330px', 'width':'auto','object-fit': 'contain',}),
-#########
 
-    x = name.replace(' ', '%20')
-    link = f"https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles={x}"
+    #driver photo
+    if name == 'George Russell':
+        photo_link = html.Img(src='https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/2019_Formula_One_tests_Barcelona%2C_Russell_%2833376134568%29.jpg/226px-2019_Formula_One_tests_Barcelona%2C_Russell_%2833376134568%29.jpg', style={'max-height':'330px', 'width':'auto','object-fit': 'contain',}),
+
+    else:
+        link_name_replace = name.replace(' ', '%20')
+        link = f"https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&prop=pageimages|pageterms&piprop=thumbnail&pithumbsize=500&redirects=1&titles={link_name_replace}"
+        with urllib.request.urlopen(link) as url:
+            data = json.loads(url.read().decode())
+        
+        photo_link = html.Img(src=data['query']['pages'][0]['thumbnail']['source'], style={'max-height':'330px', 'width':'auto','object-fit': 'contain',}),
+
+    #driver summary
+    if name == 'George Russell':
+        link='https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles=George%20Russell%20(racing%20driver)'
+    else:
+        x = name.replace(' ', '%20')
+        link = f"https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles={x}"
     with urllib.request.urlopen(link) as url:
         data = json.loads(url.read().decode())
         data = data['query']['pages']
@@ -596,15 +607,16 @@ def driver_info(name):
         summary = first_value['extract']
         text = ' '.join(re.split(r'(?<=[.])\s', summary)[:5])
         text = html.P([text])
-##########
 
+    #driver year in f1
     first_year = f1_data[f1_data['full_name']==name]['year'].min()
     last_year = f1_data[f1_data['full_name']==name]['year'].max()
     total_years = last_year - first_year
-##########
 
+    #driver nº races
     n_races = len(f1_data[f1_data['full_name']==name])   
-#########
+
+    #driver nº of WC
     champions = f1_data.groupby('year')['total_points'].max().to_frame().reset_index().merge(f1_data[['full_name','year','total_points']],on=['year','total_points']).drop_duplicates(subset='year')['full_name'].value_counts()
     try:
         champion = champions[name]

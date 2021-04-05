@@ -564,7 +564,10 @@ def driver_info(name):
                         plot_bgcolor = '#242e3f',
                         paper_bgcolor = '#242e3f',
                         font= {'color': 'white','size':15},)
-    
+    fig_points.update_yaxes(dtick=1)
+    fig_points.update_xaxes(dtick=1)
+
+
     #driver status
     driver = f1_data[(f1_data['full_name']==name)]
     status = driver.groupby('status')['status'].count()
@@ -575,9 +578,8 @@ def driver_info(name):
     fig_status = px.pie(values=values, names=labels,
                  title='Most common status by the end of a race',
                 )
-    fig_status.update_traces(textposition='inside', textinfo='percent+label',)
+    fig_status.update_traces(textposition='inside', textinfo='value+label')
     fig_status.update_layout(plot_bgcolor = '#242e3f',paper_bgcolor = '#242e3f',font= {'color': 'white','size':15})
-
     #driver photo
     if name == 'George Russell':
         photo_link = html.Img(src='https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/2019_Formula_One_tests_Barcelona%2C_Russell_%2833376134568%29.jpg/226px-2019_Formula_One_tests_Barcelona%2C_Russell_%2833376134568%29.jpg', style={'max-height':'330px', 'width':'auto','object-fit': 'contain',}),
